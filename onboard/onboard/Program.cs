@@ -19,18 +19,10 @@ namespace ShareFile.Onboard.UI
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            //Application.Run(new Form1());
-
-            var api = GetApiClient();
-            //var sfRoot = api.Items.GetChildren(api.Items.GetAlias("allshared")).Execute().Feed.Where(item => item.Name == "syncdata_Average").Single();
-            var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(@"C:\users\zachariahj\documents\syncdata\syncdata_Average"));
-            onboard.Upload(api.Items.GetAlias("allshared")).Wait();
+            Application.Run(new ChooseDirectory());
         } 
-        
-        public static string OAuthClientID = "PL9Dr2FiHBvKk7K1QHLYm4cHb";
-        public static string OAuthClientSecret = "3dBNa1lFigJoZ2iZejltG9BQAPdDjg";
 
-        static IShareFileClient GetApiClient()
+        public static IShareFileClient GetZachApiClient()
         {
             string username = "zachariah.jeyakaran@citrix.com";
             string password = "Citrix123";
@@ -38,7 +30,7 @@ namespace ShareFile.Onboard.UI
 
             string baseUri = String.Format("https://{0}.{1}/sf/v3", subdomain, "sf-api.com");
             var api = new InternalShareFileClient(baseUri);
-            var oauthService = new OAuthService(api, OAuthClientID, OAuthClientSecret);
+            var oauthService = new OAuthService(api, Globals.OAuthClientID, Globals.OAuthClientSecret);
             var token = oauthService.GetPasswordGrantRequestQuery(username, password, subdomain, "sharefile.com").Execute();
             api.AddOAuthCredentials(new Uri(baseUri), token.AccessToken);
 
