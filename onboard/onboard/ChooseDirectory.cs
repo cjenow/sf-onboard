@@ -72,9 +72,12 @@ namespace ShareFile.Onboard.UI
         private async void btnUpload_Click(object sender, EventArgs e)
         {
             btnUpload.Enabled = false;
+            lblProgress.Text = "Working...";
+            lblProgress.Visible = true;            
             var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(txtLocalPath.Text));
             await onboard.Upload(api.Items.GetAlias(txtSfPath.Text));
             btnUpload.Enabled = true;
+            lblProgress.Text = "Completed";
         }
         
     }
