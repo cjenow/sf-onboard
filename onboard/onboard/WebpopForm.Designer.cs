@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(WebpopForm));
             this.browser = new ShareFile.Sync.Authentication.WebpopBrowser();
             this.SuspendLayout();
             // 
@@ -45,8 +46,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(464, 601);
             this.Controls.Add(this.browser);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "WebpopForm";
-            this.ShowIcon = false;
             this.Text = "Log In";
             this.ResumeLayout(false);
 

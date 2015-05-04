@@ -32,9 +32,12 @@ namespace ShareFile.Onboard.UI
                 if(args.Success)
                 {
                     this.Text = String.Format("Onboarding: {0}.{1}", args.AuthCode.Subdomain, args.AuthCode.ApplicationControlPlane);
+                    lblProgress.Text = "Logging in...";
+                    lblProgress.Visible = true;
                     webpop.Close();
                     api = await BuildShareFileClient(args.AuthCode);
                     btnUpload.Enabled = true;
+                    lblProgress.Visible = false;
                 }
             };
             webpop.ShowDialog();            
@@ -73,11 +76,20 @@ namespace ShareFile.Onboard.UI
         {
             btnUpload.Enabled = false;
             lblProgress.Text = "Working...";
-            lblProgress.Visible = true;            
-            var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(txtLocalPath.Text));
-            await onboard.Upload(api.Items.GetAlias(txtSfPath.Text));
-            btnUpload.Enabled = true;
-            lblProgress.Text = "Completed";
+            lblProgress.Visible = true;
+            try
+            {
+                var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(txtLocalPath.Text));
+                await onboard.Upload(api.Items.GetAlias(txtSfPath.Text));
+                btnUpload.Enabled = true;
+                lblProgress.Text = "Completed";
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                lblProgress.Visible = false;
+                btnUpload.Enabled = true;
+            }
         }
         
     }
