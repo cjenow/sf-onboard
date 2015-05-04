@@ -9,26 +9,26 @@ namespace ShareFile.Onboard.Engine
 {
     public interface RemoteFileSystem
     {
-        public RemoteFolder Root { get; set; }
+        RemoteFolder Root { get; }
     }
 
     public interface RemoteFolder : RemoteFileSystemObject
     {
-        public Task<IEnumerable<RemoteFolder>> GetChildFolders();
-        public Task<IEnumerable<RemoteFile>> GetChildFiles();
-        public Task<object> GetPermissions(); //tbd..
+        Task<IEnumerable<RemoteFolder>> GetChildFolders();
+        Task<IEnumerable<RemoteFile>> GetChildFiles();
+        Task<object> GetPermissions(); //tbd..
     }
 
     public interface RemoteFile : RemoteFileSystemObject
     {
-        public long Size { get; set; }
-        public Task<Stream> GetContent(); 
+        long Size { get; }
+        Task<Stream> GetContent(); 
     }
 
     public interface RemoteFileSystemObject
     {
-        public string Name { get; set; }
-        public string Path { get; set; }
-        public RemoteFolder Parent { get; set; }
+        string Name { get; }
+        string Path { get; }
+        RemoteFolder Parent { get; }
     }
 }

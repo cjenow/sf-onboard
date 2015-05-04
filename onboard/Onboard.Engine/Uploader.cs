@@ -25,7 +25,6 @@ namespace ShareFile.Onboard.Engine
         const long MB = 1024 * 1024;
         const long GB = 1024 * 1024 * 1024;
 
-        const long MEMORY_CACHE_MAX_FILE_SIZE = MB;
         const long STANDARD_UPLOADER_MAX_FILE_SIZE = 16 * MB;
         const int MAX_CONCURRENT_THREADED_UPLOAD = 4;
         const int MAX_CONCURRENT_STANDARD_UPLOAD = 20;
@@ -38,7 +37,7 @@ namespace ShareFile.Onboard.Engine
 
             threadedUploaderConfig = new Api.Client.Transfers.Uploaders.FileUploaderConfig
             {
-                NumberOfThreads = 4,
+                NumberOfThreads = 3,
                 PartConfig = new Api.Client.Transfers.Uploaders.FilePartConfig
                 {
                     InitialPartSize = (int)STANDARD_UPLOADER_MAX_FILE_SIZE,
@@ -56,7 +55,6 @@ namespace ShareFile.Onboard.Engine
 
         private async Task<models.File> UploadStandard(RemoteFile file, Uri parent)
         {
-            // in memory cache check
             using (await standardUploadQueue.EnterAsync())
             using (var platformFile = new LazyPlatformFileStream(file))
             {
@@ -106,11 +104,12 @@ namespace ShareFile.Onboard.Engine
     class LazyPlatformFileStream : ShareFile.Api.Client.FileSystem.IPlatformFile
     {
         private RemoteFile file;
-        private Stream stream;
+        private Task<Stream> getStream;
 
         public LazyPlatformFileStream(RemoteFile file)
         {
             this.file = file;
+            getStream = file.GetContent();
         }
 
         public string FullName { get { return file.Path; } }
@@ -124,8 +123,7 @@ namespace ShareFile.Onboard.Engine
 
         public async Task<Stream> OpenReadAsync()
         {
-            var stream = await file.GetContent();
-            return stream;
+            return await getStream;
         }
 
         public Stream OpenWrite()
@@ -140,8 +138,8 @@ namespace ShareFile.Onboard.Engine
 
         public void Dispose()
         {
-            if (stream != null)
-                stream.Dispose();
+            if (getStream != null && getStream.Result != null)
+                getStream.Result.Dispose();
         }
     }
 }
