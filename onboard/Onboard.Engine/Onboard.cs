@@ -37,7 +37,7 @@ namespace ShareFile.Onboard.Engine
         {
             var sfFolder = await CreateFolder(folder, sfParent);
 
-            var fileTasks = (await folder.GetChildFiles()).Select(file => UploadFile(file, sfFolder.url))).ToArray();
+            var fileTasks = (await folder.GetChildFiles()).Select(file => UploadFile(file, sfFolder.url)).ToArray();
             var folderTasks = (await folder.GetChildFolders()).Select(childFolder => UploadFolder(childFolder, sfFolder.url)).ToArray();
 
             await Task.WhenAll(fileTasks.Cast<Task>().Concat(folderTasks));
