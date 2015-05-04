@@ -25,12 +25,12 @@ namespace ShareFile.Onboard.Engine
 
         public Task<IEnumerable<RemoteFolder>> GetChildFolders()
         {
-            return Task.Run(() => directory.EnumerateDirectories().Select(dir => new OnDiskFolder(dir) { Parent = this } as RemoteFolder));
+            return Task.FromResult(directory.EnumerateDirectories().Select(dir => new OnDiskFolder(dir) { Parent = this } as RemoteFolder));
         }
 
         public Task<IEnumerable<RemoteFile>> GetChildFiles()
         {
-            return Task.Run(() => directory.EnumerateFiles().Select(file => new OnDiskFile(file) { Parent = this } as RemoteFile));
+            return Task.FromResult(directory.EnumerateFiles().Select(file => new OnDiskFile(file) { Parent = this } as RemoteFile));
         }
 
         public Task<object> GetPermissions()
@@ -49,7 +49,7 @@ namespace ShareFile.Onboard.Engine
 
         public Task<Stream> GetContent()
         {
-            throw new NotImplementedException();
+            return Task.FromResult(file.OpenRead() as Stream);
         }
     }
 
