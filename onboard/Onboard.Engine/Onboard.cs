@@ -22,7 +22,7 @@ namespace ShareFile.Onboard.Engine
         {
             this.api = api;
             this.fileSystem = fileSystem;
-            uploader = new Uploader();
+            uploader = new Uploader(api);
         }
 
         public Task Upload(Uri sfRoot)
@@ -42,7 +42,14 @@ namespace ShareFile.Onboard.Engine
 
         private async Task<models.Folder> CreateFolder(RemoteFolder remoteFolder, Uri parent)
         {
-
+            var folder = new models.Folder
+            {
+                Name = remoteFolder.Name,
+            };
+            // set permissions here or after all child uploads are done?
+            // probably here so platform doesn't have to propagate down?
+            return await api.Items.CreateFolder(parent, folder).ExecuteAsync();
         }
+
     }
 }

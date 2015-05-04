@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace ShareFile.Onboard.Engine
 {
@@ -21,6 +22,7 @@ namespace ShareFile.Onboard.Engine
     public interface RemoteFile : RemoteFileSystemObject
     {
         public long Size { get; set; }
+        public Task<Stream> GetContent(); 
     }
 
     public interface RemoteFileSystemObject
