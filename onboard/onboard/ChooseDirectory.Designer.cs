@@ -103,12 +103,12 @@
             // 
             // lblProgress
             // 
-            this.lblProgress.AutoSize = true;
-            this.lblProgress.Location = new System.Drawing.Point(208, 212);
+            this.lblProgress.Location = new System.Drawing.Point(110, 221);
             this.lblProgress.Name = "lblProgress";
-            this.lblProgress.Size = new System.Drawing.Size(35, 13);
+            this.lblProgress.Size = new System.Drawing.Size(240, 13);
             this.lblProgress.TabIndex = 7;
             this.lblProgress.Text = "label3";
+            this.lblProgress.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             this.lblProgress.Visible = false;
             // 
             // ChooseDirectory
