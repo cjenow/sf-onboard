@@ -72,7 +72,7 @@ namespace ShareFile.Onboard.Engine
             }
             catch
             {
-                if (retryCount <= 0)
+                if (retryCount <= 1)
                     throw;
             }
             return await RetryAsync(f, retryCount - 1);

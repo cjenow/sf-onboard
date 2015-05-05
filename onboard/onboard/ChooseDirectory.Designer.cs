@@ -81,7 +81,6 @@
             this.txtSfPath.Name = "txtSfPath";
             this.txtSfPath.Size = new System.Drawing.Size(225, 20);
             this.txtSfPath.TabIndex = 4;
-            this.txtSfPath.Text = "allshared";
             // 
             // progress
             // 

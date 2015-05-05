@@ -43,6 +43,14 @@ namespace ShareFile.Onboard.UI
             webpop.ShowDialog();            
         }
 
+        async void ChooseDirectory_Load2(object sender, EventArgs e)
+        {
+            // fohb1651-6fbd-4e43-9f82-441ac0752a47
+            api = Program.GetZachApiClient();
+            await Login(api);
+            btnUpload.Enabled = true;
+        }
+
         private void Invoke(Action f)
         {
             if (InvokeRequired)
@@ -58,7 +66,14 @@ namespace ShareFile.Onboard.UI
             var oauth = new OAuthService(api, Globals.OAuthClientID, Globals.OAuthClientSecret);
             var token = await oauth.ExchangeAuthorizationCodeAsync(authCode);
             api.AddOAuthCredentials(token);
+            await Login(api);
             return api;
+        }
+
+        async Task Login(IShareFileClient api)
+        {
+            var homeFolder = await api.Sessions.Get().Project(session => ((ShareFile.Api.Models.User)session.Principal).HomeFolder).ExecuteAsync();
+            txtSfPath.Text = homeFolder.Id;
         }
 
         private void btnBrowseLocal_Click(object sender, EventArgs e)
@@ -75,20 +90,28 @@ namespace ShareFile.Onboard.UI
         private async void btnUpload_Click(object sender, EventArgs e)
         {
             btnUpload.Enabled = false;
+            btnBrowseLocal.Enabled = false;
+            txtLocalPath.Enabled = false;
+            txtSfPath.Enabled = false;
             lblProgress.Text = "Working...";
             lblProgress.Visible = true;
             try
             {
                 var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(txtLocalPath.Text));
                 await onboard.Upload(api.Items.GetAlias(txtSfPath.Text));
-                btnUpload.Enabled = true;
                 lblProgress.Text = "Completed";
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString(), "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                lblProgress.Visible = false;
+                lblProgress.Visible = false;                
+            }
+            finally
+            {
                 btnUpload.Enabled = true;
+                btnBrowseLocal.Enabled = true;
+                txtLocalPath.Enabled = true;
+                txtSfPath.Enabled = true;
             }
         }
         
