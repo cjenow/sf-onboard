@@ -93,6 +93,8 @@ namespace ShareFile.Onboard.UI
 
         private async void btnUpload_Click(object sender, EventArgs e)
         {
+            if (!ValidateSfRoot(txtSfPath.Text, txtLocalPath.Text)) return;
+
             btnUpload.Enabled = false;
             btnBrowseLocal.Enabled = false;
             txtLocalPath.Enabled = false;
@@ -118,6 +120,21 @@ namespace ShareFile.Onboard.UI
                 btnBrowseLocal.Enabled = true;
                 txtLocalPath.Enabled = true;
                 txtSfPath.Enabled = true;
+            }
+        }
+
+        private bool ValidateSfRoot(string sfRootId, string localPath)
+        {
+            if (sfRootId.Equals("allshared", StringComparison.OrdinalIgnoreCase)
+                && new System.IO.DirectoryInfo(localPath).EnumerateFiles().Count() > 0)
+            {
+                var result = MessageBox.Show("Files cannot be placed at the root of 'Shared Folders'. Any files in your local root directory will not be uploaded. Proceed anyway?",
+                    "Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                return result == System.Windows.Forms.DialogResult.Yes;
+            }
+            else
+            {
+                return true;
             }
         }
         

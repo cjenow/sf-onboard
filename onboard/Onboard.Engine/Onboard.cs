@@ -30,7 +30,10 @@ namespace ShareFile.Onboard.Engine
 
         public async Task Upload(Uri sfRoot)
         {
-            await Task.WhenAll((await fileSystem.Root.GetChildFolders()).Select(folder => UploadFolder(folder, sfRoot)));
+            var fileTasks = sfRoot.AbsoluteUri.Contains("allshared") ? new Task<models.File>[] { } : (await fileSystem.Root.GetChildFiles()).Select(file => UploadFile(file, sfRoot)).ToArray();
+            var folderTasks = (await fileSystem.Root.GetChildFolders()).Select(childFolder => UploadFolder(childFolder, sfRoot)).ToArray();
+
+            await Task.WhenAll(fileTasks.Cast<Task>().Concat(folderTasks));
         }
 
         private async Task UploadFolder(RemoteFolder folder, Uri sfParent)
