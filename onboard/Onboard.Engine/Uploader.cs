@@ -15,11 +15,11 @@ namespace ShareFile.Onboard.Engine
 {
     class Uploader
     {
-        private IShareFileClient api;
-        private AsyncSemaphore standardUploadQueue;
-        private AsyncSemaphore threadedUploadQueue;
+        IShareFileClient api;
+        AsyncSemaphore standardUploadQueue;
+        AsyncSemaphore threadedUploadQueue;
 
-        private Api.Client.Transfers.Uploaders.FileUploaderConfig threadedUploaderConfig;
+        Api.Client.Transfers.Uploaders.FileUploaderConfig threadedUploaderConfig;
 
         const long KB = 1024;
         const long MB = 1024 * 1024;
