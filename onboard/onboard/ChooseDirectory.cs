@@ -61,18 +61,22 @@ namespace ShareFile.Onboard.UI
 
         async Task<IShareFileClient> BuildShareFileClient(OAuthAuthorizationCode authCode)
         {
-            string baseUri = String.Format("https://{0}.{1}/sf/v3", authCode.Subdomain, authCode.ApiControlPlane);
+            string baseUriFormat = "https://{0}.{1}/sf/v3";
+            string baseUri = String.Format(baseUriFormat, authCode.Subdomain, authCode.ApiControlPlane);
             IShareFileClient api = new ShareFileClient(baseUri);
             var oauth = new OAuthService(api, Globals.OAuthClientID, Globals.OAuthClientSecret);
-            var token = await oauth.ExchangeAuthorizationCodeAsync(authCode);
+            var token = await oauth.ExchangeAuthorizationCodeAsync(authCode);            
             api.AddOAuthCredentials(token);
+            api.BaseUri = new Uri(String.Format(baseUriFormat, token.Subdomain, token.ApiControlPlane));
             await Login(api);
             return api;
         }
 
         async Task Login(IShareFileClient api)
         {
-            var homeFolder = await api.Sessions.Get().Project(session => ((ShareFile.Api.Models.User)session.Principal).HomeFolder).ExecuteAsync();
+            var homeFolder = await api.Sessions.Get().Project(session => 
+                ((ShareFile.Api.Models.User)session.Principal).HomeFolder).ExecuteAsync();
+            
             txtSfPath.Text = homeFolder.Id;
         }
 
