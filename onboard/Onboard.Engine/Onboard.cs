@@ -38,7 +38,7 @@ namespace ShareFile.Onboard.Engine
         {
             var fileTasks = parent.AbsoluteUri.Contains("allshared")
                 ? new Task<FileResult>[] { }
-                : (await fileSystem.Root.GetChildFiles()).Select(file => UploadFile(file, parent)).ToArray();
+                : (await folder.GetChildFiles()).Select(file => UploadFile(file, parent)).ToArray();
             var folderTasks = (await folder.GetChildFolders()).Select(childFolder => UploadChildFolder(childFolder, parent)).ToArray();
 
             await Task.WhenAll(folderTasks);
@@ -154,23 +154,23 @@ namespace ShareFile.Onboard.Engine
     public class OnboardResult
     {
         public FolderResult RootFolderResult { get; set; }
-        public bool FileUploadsFinished { get; private set; }
 
+        private bool fileUploadsFinished;
         // set after FileUploadsFinished == true
         private FileResult[] fileResults;
 
         public OnboardResult(FolderResult rootFolderResult)
         {
             RootFolderResult = rootFolderResult;
-            FileUploadsFinished = false;
+            fileUploadsFinished = false;
         }
 
         public async Task WaitForFileUploads()
         {
-            Func<FolderResult, IEnumerable<Task<FileResult>>> f;
+            Func<FolderResult, IEnumerable<Task<FileResult>>> f = null;
             f = folderResult => folderResult.ChildFileTasks.Concat(folderResult.ChildFolders.SelectMany(f));
             fileResults = await Task.WhenAll(f(RootFolderResult));
-            FileUploadsFinished = true;
+            fileUploadsFinished = true;
             return;
         }
     }

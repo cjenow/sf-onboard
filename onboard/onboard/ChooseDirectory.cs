@@ -39,6 +39,19 @@ namespace ShareFile.Onboard.UI
                     btnUpload.Enabled = true;
                     lblProgress.Visible = false;
                 }
+                else
+                {
+                    var authFailedAction = MessageBox.Show(String.Format("{0}: {1}", args.Error.Error, args.Error.ErrorDescription),
+                        "Login Failed", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
+                    if(authFailedAction == DialogResult.Retry)
+                    {
+                        webpop.WebpopForm_Load(null, new EventArgs());
+                    }
+                    else
+                    {
+                        this.Close();
+                    }
+                }
             };
             webpop.ShowDialog();            
         }
@@ -83,7 +96,7 @@ namespace ShareFile.Onboard.UI
         private void btnBrowseLocal_Click(object sender, EventArgs e)
         {
             var folderSelector = new FolderBrowserDialog();
-            folderSelector.RootFolder = Environment.SpecialFolder.MyDocuments;
+            folderSelector.RootFolder = Environment.SpecialFolder.MyComputer;
             
             if(folderSelector.ShowDialog() == DialogResult.OK)
             {
@@ -105,7 +118,8 @@ namespace ShareFile.Onboard.UI
             {
                 var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(txtLocalPath.Text));
                 var start = DateTimeOffset.Now;
-                await onboard.BeginUpload(api.Items.GetAlias(txtSfPath.Text));
+                var result = await onboard.BeginUpload(api.Items.GetAlias(txtSfPath.Text));
+                await result.WaitForFileUploads();
                 var elapsed = DateTimeOffset.Now - start;
                 lblProgress.Text = String.Format("Completed in {0}", elapsed);
             }

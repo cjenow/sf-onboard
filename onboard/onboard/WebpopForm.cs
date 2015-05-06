@@ -22,7 +22,7 @@ namespace ShareFile.Onboard.UI
             Load += WebpopForm_Load;
         }
 
-        void WebpopForm_Load(object sender, EventArgs e)
+        public void WebpopForm_Load(object sender, EventArgs e)
         {
             browser.StartWebpop("sharefile.com", Globals.OAuthClientID, "onecitrix");
         }
