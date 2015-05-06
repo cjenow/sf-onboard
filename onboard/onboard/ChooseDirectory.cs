@@ -41,7 +41,7 @@ namespace ShareFile.Onboard.UI
                 }
                 else
                 {
-                    var authFailedAction = MessageBox.Show(String.Format("{0}: {1}", args.Error.Error, args.Error.ErrorDescription),
+                    var authFailedAction = MessageBox.Show(this, String.Format("{0}: {1}", args.Error.Error, args.Error.ErrorDescription),
                         "Login Failed", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error);
                     if(authFailedAction == DialogResult.Retry)
                     {
@@ -53,7 +53,7 @@ namespace ShareFile.Onboard.UI
                     }
                 }
             };
-            webpop.ShowDialog();            
+            webpop.ShowDialog(this);            
         }
 
         async void ChooseDirectory_Load2(object sender, EventArgs e)
@@ -98,7 +98,7 @@ namespace ShareFile.Onboard.UI
             var folderSelector = new FolderBrowserDialog();
             folderSelector.RootFolder = Environment.SpecialFolder.MyComputer;
             
-            if(folderSelector.ShowDialog() == DialogResult.OK)
+            if(folderSelector.ShowDialog(this) == DialogResult.OK)
             {
                 txtLocalPath.Text = folderSelector.SelectedPath;
             }
@@ -108,33 +108,58 @@ namespace ShareFile.Onboard.UI
         {
             if (!ValidateSfRoot(txtSfPath.Text, txtLocalPath.Text)) return;
 
+            SetWorkingUI();
+            try
+            {
+                var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(txtLocalPath.Text));
+                var start = DateTimeOffset.Now;
+                var result = await onboard.BeginUpload(api.Items.GetAlias(txtSfPath.Text));
+                await result.FileUploadsFinished;
+                var elapsed = DateTimeOffset.Now - start;
+                lblProgress.Text = String.Format("Completed in {0}", elapsed);
+
+                var retryAction = DisplayOnboardResult(result, elapsed);
+                var retryResult = result;
+                while(retryAction == DialogResult.Retry)
+                {
+                    SetWorkingUI();
+                    // everything related to retry is awful, rip out and do over
+                    var retryStart = DateTimeOffset.Now;
+                    retryResult = await onboard.BeginRetryFailed(retryResult);
+                    await retryResult.FileUploadsFinished;
+                    var retryElapsed = DateTimeOffset.Now - retryStart;
+                    lblProgress.Text = String.Format("Completed in {0}", retryElapsed);
+                    UnsetWorkingUI();
+                    retryAction = DisplayOnboardResult(retryResult, retryElapsed); 
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.ToString(), "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                lblProgress.Visible = false;                
+            }
+            finally
+            {
+                UnsetWorkingUI();
+            }
+        }
+
+        private void SetWorkingUI()
+        {
             btnUpload.Enabled = false;
             btnBrowseLocal.Enabled = false;
             txtLocalPath.Enabled = false;
             txtSfPath.Enabled = false;
             lblProgress.Text = "Working...";
             lblProgress.Visible = true;
-            try
-            {
-                var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(txtLocalPath.Text));
-                var start = DateTimeOffset.Now;
-                var result = await onboard.BeginUpload(api.Items.GetAlias(txtSfPath.Text));
-                await result.WaitForFileUploads();
-                var elapsed = DateTimeOffset.Now - start;
-                lblProgress.Text = String.Format("Completed in {0}", elapsed);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                lblProgress.Visible = false;                
-            }
-            finally
-            {
-                btnUpload.Enabled = true;
-                btnBrowseLocal.Enabled = true;
-                txtLocalPath.Enabled = true;
-                txtSfPath.Enabled = true;
-            }
+        }
+
+        private void UnsetWorkingUI()
+        {
+            btnUpload.Enabled = true;
+            btnBrowseLocal.Enabled = true;
+            txtLocalPath.Enabled = true;
+            txtSfPath.Enabled = true;
         }
 
         private bool ValidateSfRoot(string sfRootId, string localPath)
@@ -142,7 +167,7 @@ namespace ShareFile.Onboard.UI
             if (sfRootId.Equals("allshared", StringComparison.OrdinalIgnoreCase)
                 && new System.IO.DirectoryInfo(localPath).EnumerateFiles().Count() > 0)
             {
-                var result = MessageBox.Show("Files cannot be placed at the root of 'Shared Folders'. Any files in your local root directory will not be uploaded. Proceed anyway?",
+                var result = MessageBox.Show(this, "Files cannot be placed at the root of 'Shared Folders'. Any files in your local root directory will not be uploaded. Proceed anyway?",
                     "Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                 return result == System.Windows.Forms.DialogResult.Yes;
             }
@@ -151,6 +176,48 @@ namespace ShareFile.Onboard.UI
                 return true;
             }
         }
+
+        private DialogResult DisplayOnboardResult(Engine.OnboardResult result, TimeSpan elapsed)
+        {
+            var successfulFiles = result.AllFileResults.Where(file => file.UploadSucceeded).Select(file => file.File).ToArray();
+            var failedFiles = result.AllFileResults.Where(file => !file.UploadSucceeded).Select(file => file.File).ToArray();
+            string message = String.Format("{0} files uploaded successfully ({1})", successfulFiles.Length, successfulFiles.Sum(file => file.Size).ToFileSizeString());
+            if(failedFiles.Length > 0)
+            {
+                message += String.Format("\n{0} files failed to upload ({1})", failedFiles.Length, failedFiles.Sum(file => file.Size).ToFileSizeString());
+            }
+            var failedFolders = result.AllFolderResults.Where(folder => !folder.CreateSucceeded).ToArray();
+            if(failedFolders.Length > 0)
+            {
+                message += String.Format("\n{0} folders failed to upload", failedFolders.Length);
+            }
+            message += String.Format("\nElapsed time: {0}", elapsed);
+            
+            if(failedFolders.Length > 0 || failedFiles.Length > 0)
+            {
+                message += String.Format("\n\nRetry failed uploads?");
+                return MessageBox.Show(this, message, "Upload Results", MessageBoxButtons.RetryCancel, MessageBoxIcon.Question);
+            }
+            else
+            {
+                return MessageBox.Show(this, message, "Upload Results", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
         
+    }
+
+    static class DisplayExtensions
+    {
+        private static string[] FileSizeSuffixes = new[] { "bytes", "KB", "MB", "GB" };
+
+        public static string ToFileSizeString(this long size)
+        {
+            int exp = (int)Math.Log(size, 1024);
+            if (exp >= 0 && exp < FileSizeSuffixes.Length)
+                return String.Format("{0} {1}", (size / Math.Pow(1024, exp)).ToString("F"), FileSizeSuffixes[exp]);
+            else
+                return String.Format("{0} {1}", size, FileSizeSuffixes[0]);
+        }
     }
 }

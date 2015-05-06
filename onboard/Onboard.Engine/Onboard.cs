@@ -105,13 +105,30 @@ namespace ShareFile.Onboard.Engine
             }
             return await RetryAsync(f, retryCount - 1);
         }
+
+        public async Task<OnboardResult> BeginRetryFailed(OnboardResult result)
+        {
+            var fileTasks = result.AllFileResults.Where(fileResult => !fileResult.UploadSucceeded).Select(fileResult => UploadFile(fileResult.File, fileResult.ParentUri)).ToArray();
+            var folderTasks = result.AllFolderResults.Where(folderResult => !folderResult.CreateSucceeded).Select(folderResult => UploadChildFolder(folderResult.Folder, folderResult.ParentUri)).ToArray();
+
+            await Task.WhenAll(fileTasks.Cast<Task>().Concat(folderTasks));
+
+            var folderResults = folderTasks.Select(t => new OnboardResult(t.Result));
+
+            await Task.WhenAll(folderResults.Select(r => r.FileUploadsFinished));
+
+            return new OnboardResult
+            {
+                AllFileResults = fileTasks.Select(t => t.Result).Concat(folderResults.SelectMany(fr => fr.AllFileResults)).ToArray(),
+                AllFolderResults = folderResults.SelectMany(fr => fr.AllFolderResults).ToArray(),
+                FileUploadsFinished = Task.FromResult(new object())
+            };
+        }
     }
 
     public class FileResult
     {
-        public string Name { get; set; }
-        public string Path { get; set; }
-        public long Size { get; set; }
+        public RemoteFile File { get; set; }
         public Uri ParentUri { get; set; }
         public bool UploadSucceeded { get; set; }
         // set on success
@@ -121,15 +138,14 @@ namespace ShareFile.Onboard.Engine
 
         public FileResult(RemoteFile file, Uri parent)
         {
-            Name = file.Name;
-            Path = file.Path;
-            Size = file.Size;
+            File = file;
             ParentUri = parent;
         }
     }
 
     public class FolderResult
     {
+        public RemoteFolder Folder { get; set; }
         public string Name { get; set; }
         public string Path { get; set; }
         public Uri ParentUri { get; set; }
@@ -143,8 +159,7 @@ namespace ShareFile.Onboard.Engine
         
         public FolderResult(RemoteFolder folder, Uri parent)
         {
-            Name = folder.Name;
-            Path = folder.Path;
+            Folder = folder;
             ParentUri = parent;
             ChildFileTasks = new Task<FileResult>[] { };
             ChildFolders = new FolderResult[] { };
@@ -153,25 +168,26 @@ namespace ShareFile.Onboard.Engine
 
     public class OnboardResult
     {
-        public FolderResult RootFolderResult { get; set; }
+        public FolderResult[] AllFolderResults { get; set; }
+        public Task FileUploadsFinished { get; set; }
+        public FileResult[] AllFileResults { get; set; }
 
-        private bool fileUploadsFinished;
-        // set after FileUploadsFinished == true
-        private FileResult[] fileResults;
+        public OnboardResult() { }
 
         public OnboardResult(FolderResult rootFolderResult)
         {
-            RootFolderResult = rootFolderResult;
-            fileUploadsFinished = false;
+            FileUploadsFinished = WaitForFileUploads(rootFolderResult);
+
+            Func<FolderResult, IEnumerable<FolderResult>> f = null;
+            f = folderResult => new[] { folderResult }.Concat(folderResult.ChildFolders.SelectMany(f));
+            AllFolderResults = f(rootFolderResult).ToArray();
         }
 
-        public async Task WaitForFileUploads()
+        public async Task WaitForFileUploads(FolderResult rootFolderResult)
         {
             Func<FolderResult, IEnumerable<Task<FileResult>>> f = null;
             f = folderResult => folderResult.ChildFileTasks.Concat(folderResult.ChildFolders.SelectMany(f));
-            fileResults = await Task.WhenAll(f(RootFolderResult));
-            fileUploadsFinished = true;
-            return;
+            AllFileResults = await Task.WhenAll(f(rootFolderResult));
         }
     }
 }
