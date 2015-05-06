@@ -105,7 +105,7 @@ namespace ShareFile.Onboard.UI
             {
                 var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(txtLocalPath.Text));
                 var start = DateTimeOffset.Now;
-                await onboard.Upload(api.Items.GetAlias(txtSfPath.Text));
+                await onboard.BeginUpload(api.Items.GetAlias(txtSfPath.Text));
                 var elapsed = DateTimeOffset.Now - start;
                 lblProgress.Text = String.Format("Completed in {0}", elapsed);
             }

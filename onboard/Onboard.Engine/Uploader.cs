@@ -37,7 +37,7 @@ namespace ShareFile.Onboard.Engine
 
             threadedUploaderConfig = new Api.Client.Transfers.Uploaders.FileUploaderConfig
             {
-                NumberOfThreads = 3,
+                NumberOfThreads = MAX_CONCURRENT_STANDARD_UPLOAD / MAX_CONCURRENT_THREADED_UPLOAD,
                 PartConfig = new Api.Client.Transfers.Uploaders.FilePartConfig
                 {
                     InitialPartSize = (int)STANDARD_UPLOADER_MAX_FILE_SIZE,

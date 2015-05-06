@@ -29,45 +29,42 @@ namespace ShareFile.Onboard.Engine
             uploader = new Uploader(api);
         }
 
-        public async Task<FolderResult> Upload(Uri sfRoot)
+        public async Task<OnboardResult> BeginUpload(Uri sfRoot)
         {
-            try
-            {
-                var fileTasks = sfRoot.AbsoluteUri.Contains("allshared") ? new Task<FileResult>[] { } : (await fileSystem.Root.GetChildFiles()).Select(file => UploadFile(file, sfRoot)).ToArray();
-                var folderTasks = (await fileSystem.Root.GetChildFolders()).Select(childFolder => UploadFolder(childFolder, sfRoot)).ToArray();
-
-                await Task.WhenAll(fileTasks.Cast<Task>().Concat(folderTasks));
-
-                var result = new FolderResult(fileSystem.Root, sfRoot) { FolderCreateSucceeded = true, Uri = sfRoot };
-                result = fileTasks.Select(task => task.Result).Aggregate(result, (folderResult, fileResult) => folderResult.AddChild(fileResult));
-                result = folderTasks.Select(task => task.Result).Aggregate(result, (folderResult, childFolderResult) => folderResult.AddChild(childFolderResult));
-                return result;
-            }
-            catch(Exception ex)
-            {
-                return new FolderResult(fileSystem.Root, sfRoot) { FolderCreateSucceeded = false, Exception = ex };
-            }
+            return new OnboardResult(await UploadFolder(fileSystem.Root, sfRoot));
         }
 
         private async Task<FolderResult> UploadFolder(RemoteFolder folder, Uri parent)
         {
+            var fileTasks = parent.AbsoluteUri.Contains("allshared")
+                ? new Task<FileResult>[] { }
+                : (await fileSystem.Root.GetChildFiles()).Select(file => UploadFile(file, parent)).ToArray();
+            var folderTasks = (await folder.GetChildFolders()).Select(childFolder => UploadChildFolder(childFolder, parent)).ToArray();
+
+            await Task.WhenAll(folderTasks);
+
+            var result = new FolderResult(folder, parent) // this parent url is wrong
+            {
+                CreateSucceeded = true,
+                Uri = parent,
+                ChildFileTasks = fileTasks,
+                ChildFolders = folderTasks.Select(t => t.Result).ToArray(),
+            };
+            // result = fileTasks.Select(task => task.Result).Aggregate(result, (folderResult, fileResult) => folderResult.AddChild(fileResult));
+            // result = folderTasks.Select(task => task.Result).Aggregate(result, (folderResult, childFolderResult) => folderResult.AddChild(childFolderResult));
+            return result;
+        }
+
+        private async Task<FolderResult> UploadChildFolder(RemoteFolder folder, Uri parent)
+        {
             try
             {
                 var sfFolder = await CreateFolder(folder, parent);
-
-                var fileTasks = (await folder.GetChildFiles()).Select(file => UploadFile(file, sfFolder.url)).ToArray();
-                var folderTasks = (await folder.GetChildFolders()).Select(childFolder => UploadFolder(childFolder, sfFolder.url)).ToArray();
-
-                await Task.WhenAll(fileTasks.Cast<Task>().Concat(folderTasks));
-
-                var result = new FolderResult(folder, parent) { FolderCreateSucceeded = true, Uri = sfFolder.url };
-                result = fileTasks.Select(task => task.Result).Aggregate(result, (folderResult, fileResult) => folderResult.AddChild(fileResult));
-                result = folderTasks.Select(task => task.Result).Aggregate(result, (folderResult, childFolderResult) => folderResult.AddChild(childFolderResult));
-                return result;
+                return await UploadFolder(folder, sfFolder.url);
             }
             catch(Exception ex)
             {
-                return new FolderResult(folder, parent) { FolderCreateSucceeded = false, Exception = ex };
+                return new FolderResult(folder, parent) { CreateSucceeded = false, Exception = ex };
             }
         }
 
@@ -91,7 +88,6 @@ namespace ShareFile.Onboard.Engine
             }
             catch(Exception ex)
             {
-                // log? .. maybe not
                 return new FileResult(file, parent) { UploadSucceeded = false, Exception = ex };
             }
         }
@@ -137,38 +133,45 @@ namespace ShareFile.Onboard.Engine
         public string Name { get; set; }
         public string Path { get; set; }
         public Uri ParentUri { get; set; }
-        public bool FolderCreateSucceeded { get; set; }
+        public bool CreateSucceeded { get; set; }
         // set on success
         public Uri Uri { get; set; }
+        public Task<FileResult>[] ChildFileTasks { get; set; }
+        public FolderResult[] ChildFolders { get; set; }
         // set on failure
         public Exception Exception { get; set; }
-
-        public long TotalSizeSuccessfullyUploaded { get; set; }
-        public int SuccessfulChildFiles { get; set; }
-        public int SuccessfulChildFolders { get; set; }
-
-        public IList<FileResult> FailedChildFiles { get; set; }
-        public IList<FolderResult> FailedChildFolders { get; set; }
-
+        
         public FolderResult(RemoteFolder folder, Uri parent)
         {
             Name = folder.Name;
             Path = folder.Path;
-            FailedChildFiles = new List<FileResult>();
-            FailedChildFolders = new List<FolderResult>();
             ParentUri = parent;
+            ChildFileTasks = new Task<FileResult>[] { };
+            ChildFolders = new FolderResult[] { };
+        }
+    }
+
+    public class OnboardResult
+    {
+        public FolderResult RootFolderResult { get; set; }
+        public bool FileUploadsFinished { get; private set; }
+
+        // set after FileUploadsFinished == true
+        private FileResult[] fileResults;
+
+        public OnboardResult(FolderResult rootFolderResult)
+        {
+            RootFolderResult = rootFolderResult;
+            FileUploadsFinished = false;
         }
 
-        public FolderResult AddChild(FileResult fileResult)
+        public async Task WaitForFileUploads()
         {
-
-            return this;
-        }
-
-        public FolderResult AddChild(FolderResult folderResult)
-        {
-
-            return this;
+            Func<FolderResult, IEnumerable<Task<FileResult>>> f;
+            f = folderResult => folderResult.ChildFileTasks.Concat(folderResult.ChildFolders.SelectMany(f));
+            fileResults = await Task.WhenAll(f(RootFolderResult));
+            FileUploadsFinished = true;
+            return;
         }
     }
 }
