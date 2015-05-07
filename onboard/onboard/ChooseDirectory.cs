@@ -56,14 +56,6 @@ namespace ShareFile.Onboard.UI
             webpop.ShowDialog(this);            
         }
 
-        async void ChooseDirectory_Load2(object sender, EventArgs e)
-        {
-            // fohb1651-6fbd-4e43-9f82-441ac0752a47
-            api = Program.GetZachApiClient();
-            await Login(api);
-            btnUpload.Enabled = true;
-        }
-
         private void Invoke(Action f)
         {
             if (InvokeRequired)

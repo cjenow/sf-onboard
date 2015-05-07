@@ -21,20 +21,5 @@ namespace ShareFile.Onboard.UI
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new ChooseDirectory());
         } 
-
-        public static IShareFileClient GetZachApiClient()
-        {
-            string username = "zachariah.jeyakaran@citrix.com";
-            string password = "Citrix123";
-            string subdomain = "jeffcombscom";
-
-            string baseUri = String.Format("https://{0}.{1}/sf/v3", subdomain, "sf-api.com");
-            var api = new InternalShareFileClient(baseUri);
-            var oauthService = new OAuthService(api, Globals.OAuthClientID, Globals.OAuthClientSecret);
-            var token = oauthService.GetPasswordGrantRequestQuery(username, password, subdomain, "sharefile.com").Execute();
-            api.AddOAuthCredentials(new Uri(baseUri), token.AccessToken);
-
-            return api;
-        }
     }
 }
