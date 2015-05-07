@@ -54,7 +54,6 @@
             this.txtLocalPath.Name = "txtLocalPath";
             this.txtLocalPath.Size = new System.Drawing.Size(225, 20);
             this.txtLocalPath.TabIndex = 1;
-            this.txtLocalPath.Text = "C:\\users\\zachariahj\\documents\\syncdata\\syncdata_Average";
             // 
             // btnBrowseLocal
             // 

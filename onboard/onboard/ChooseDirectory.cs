@@ -116,7 +116,7 @@ namespace ShareFile.Onboard.UI
                 var result = await onboard.BeginUpload(api.Items.GetAlias(txtSfPath.Text));
                 await result.FileUploadsFinished;
                 var elapsed = DateTimeOffset.Now - start;
-                lblProgress.Text = String.Format("Completed in {0}", elapsed);
+                lblProgress.Text = String.Format("Completed in {0}", elapsed.ToTimeSpanString());
 
                 var retryAction = DisplayOnboardResult(result, elapsed);
                 var retryResult = result;
@@ -191,7 +191,12 @@ namespace ShareFile.Onboard.UI
             {
                 message += String.Format("\n{0} folders failed to upload", failedFolders.Length);
             }
-            message += String.Format("\nElapsed time: {0}", elapsed);
+            if(successfulFiles.Length > 0)
+            {
+                message += String.Format("\nTransfer speed: {0}/s", ((long)(successfulFiles.Sum(file => file.Size) / elapsed.TotalSeconds)).ToFileSizeString());
+            }
+            message += String.Format("\nElapsed time: {0}", elapsed.ToTimeSpanString());
+            
             
             if(failedFolders.Length > 0 || failedFiles.Length > 0)
             {
@@ -218,6 +223,11 @@ namespace ShareFile.Onboard.UI
                 return String.Format("{0} {1}", (size / Math.Pow(1024, exp)).ToString("F"), FileSizeSuffixes[exp]);
             else
                 return String.Format("{0} {1}", size, FileSizeSuffixes[0]);
+        }
+
+        public static string ToTimeSpanString(this TimeSpan ts)
+        {
+            return String.Format("{0}h {1}m {2}s", ts.Hours, ts.Minutes, ts.Seconds);
         }
     }
 }

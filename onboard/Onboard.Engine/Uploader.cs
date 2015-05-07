@@ -41,7 +41,7 @@ namespace ShareFile.Onboard.Engine
                 PartConfig = new Api.Client.Transfers.Uploaders.FilePartConfig
                 {
                     InitialPartSize = (int)STANDARD_UPLOADER_MAX_FILE_SIZE,
-                    MaxPartSize = (int)(STANDARD_UPLOADER_MAX_FILE_SIZE * 8),
+                    MaxPartSize = (int)(4 * STANDARD_UPLOADER_MAX_FILE_SIZE),
                 }
             };
         }
