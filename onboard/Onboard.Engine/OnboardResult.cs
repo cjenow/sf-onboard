@@ -32,7 +32,7 @@ namespace ShareFile.Onboard.Engine
             }
             else
             {
-                return String.Format("{0} FAILED {1} {2}", ProcessedAt, File.Path, Exception);
+                return String.Format("{0} FAILED {1} {2}", ProcessedAt, File.Path, Exception.Unwrap());
             }
         }
     }
@@ -67,7 +67,7 @@ namespace ShareFile.Onboard.Engine
             }
             else
             {
-                return String.Format("{0} FAILED {1} {2}", ProcessedAt, Folder.Parent, Exception);
+                return String.Format("{0} FAILED {1} {2}", ProcessedAt, Folder.Parent, Exception.Unwrap());
             }
         }
     }
@@ -138,6 +138,22 @@ namespace ShareFile.Onboard.Engine
             {
                 return compare(x, y);
             }
+        }
+    }
+
+    static class TaskExtensions
+    {
+        public static Exception Unwrap(this AggregateException agg)
+        {
+            Exception ex = agg.Flatten();
+            while (ex is AggregateException)
+                ex = (ex as AggregateException).InnerException;
+            return ex;
+        }
+
+        public static Exception Unwrap(this Exception ex)
+        {
+            return (ex is AggregateException) ? (ex as AggregateException).Unwrap() : ex;
         }
     }
 }
