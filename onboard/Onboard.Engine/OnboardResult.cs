@@ -28,11 +28,11 @@ namespace ShareFile.Onboard.Engine
         {
             if (UploadSucceeded)
             {
-                return String.Format("{0} {1} SUCCESS {2}", ProcessedAt, File.Path, Uri);
+                return String.Format("{0} SUCCESS {1} {2}", ProcessedAt, File.Path, Uri);
             }
             else
             {
-                return String.Format("{0} {1} FAILED {2}", ProcessedAt, File.Path, Exception);
+                return String.Format("{0} FAILED {1} {2}", ProcessedAt, File.Path, Exception);
             }
         }
     }
@@ -63,11 +63,11 @@ namespace ShareFile.Onboard.Engine
         {
             if(CreateSucceeded)
             {
-                return String.Format("{0} {1} SUCCESS {2}", ProcessedAt, Folder.Path, Uri);
+                return String.Format("{0} SUCCESS {1} {2}", ProcessedAt, Folder.Path, Uri);
             }
             else
             {
-                return String.Format("{0} {1} FAILED {2}", ProcessedAt, Folder.Parent, Exception);
+                return String.Format("{0} FAILED {1} {2}", ProcessedAt, Folder.Parent, Exception);
             }
         }
     }
@@ -109,8 +109,13 @@ namespace ShareFile.Onboard.Engine
             var fileLogEntries = AllFileResults.Select(file => new { Time = file.ProcessedAt, LogLine = file.ToLogString() });
             var folderLogEntries = AllFolderResults.Select(folder => new { Time = folder.ProcessedAt, LogLine = folder.ToLogString() });
             var sorted = fileLogEntries.Concat(folderLogEntries).OrderBy(logEntry => logEntry.Time);
-            var content = String.Join("\n", sorted.Select(logEntry => logEntry.LogLine));
-            await new System.IO.StreamWriter(output).WriteAsync(content);
+            using (var wr = new System.IO.StreamWriter(output))
+            {
+                foreach (string line in sorted.Select(logEntry => logEntry.LogLine))
+                {
+                    await wr.WriteLineAsync(line);
+                }
+            }
         }
     }
 

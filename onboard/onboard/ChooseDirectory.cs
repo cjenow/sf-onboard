@@ -207,12 +207,12 @@ namespace ShareFile.Onboard.UI
 
         private async Task LogOnboardResult(Engine.OnboardResult result, string localPath)
         {
-            string x = System.IO.Path.GetDirectoryName(@"\\networkpath");
-            string filename = String.Format("Transfer_{0}_{1}.log", result.Start, System.IO.Path.GetDirectoryName(localPath));
-            using(var logFile = System.IO.File.OpenWrite(filename))
+            try
             {
-                await result.ToLogFile(logFile);
+                string filename = String.Format("Transfer {0} {1}.log", result.Start.ToFileNameDateTimeString(), System.IO.Path.GetFileName(localPath));
+                await result.ToLogFile(System.IO.File.OpenWrite(filename));
             }
+            catch { }
         }
         
     }
@@ -233,6 +233,11 @@ namespace ShareFile.Onboard.UI
         public static string ToTimeSpanString(this TimeSpan ts)
         {
             return String.Format("{0}h {1}m {2}s", ts.Hours, ts.Minutes, ts.Seconds);
+        }
+
+        public static string ToFileNameDateTimeString(this DateTimeOffset dt)
+        {
+            return String.Format("{0}-{1}-{2} {3}{4}{5}", dt.Year, dt.Month, dt.Day, dt.Hour.ToString("00"), dt.Minute.ToString("00"), dt.Second.ToString("00"));
         }
     }
 }
