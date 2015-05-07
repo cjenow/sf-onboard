@@ -61,6 +61,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="OnboardResult.cs" />
     <Compile Include="OnDiskFileSystem.cs" />
     <Compile Include="Onboard.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
