@@ -98,19 +98,23 @@ namespace ShareFile.Onboard.UI
 
         private async void btnUpload_Click(object sender, EventArgs e)
         {
-            if (!ValidateSfRoot(txtSfPath.Text, txtLocalPath.Text)) return;
+            string sfPath = txtSfPath.Text;
+            string localPath = txtLocalPath.Text;
+            if (!ValidateSfRoot(sfPath, localPath)) return;
 
-            SetWorkingUI();
             try
             {
-                var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(txtLocalPath.Text));
+                SetWorkingUI();
+                var onboard = new Engine.Onboard(api, new Engine.OnDiskFileSystem(localPath));
                 var start = DateTimeOffset.Now;
-                var result = await onboard.BeginUpload(api.Items.GetAlias(txtSfPath.Text));
+                var result = await onboard.BeginUpload(api.Items.GetAlias(sfPath));
                 await result.FileUploadsFinished;
                 var elapsed = DateTimeOffset.Now - start;
                 lblProgress.Text = String.Format("Completed in {0}", elapsed.ToTimeSpanString());
+                var logTask = LogOnboardResult(result, localPath);
 
                 var retryAction = DisplayOnboardResult(result, elapsed);
+                await logTask;
                 var retryResult = result;
                 while(retryAction == DialogResult.Retry)
                 {
@@ -201,6 +205,15 @@ namespace ShareFile.Onboard.UI
             }
         }
 
+        private async Task LogOnboardResult(Engine.OnboardResult result, string localPath)
+        {
+            string x = System.IO.Path.GetDirectoryName(@"\\networkpath");
+            string filename = String.Format("Transfer_{0}_{1}.log", result.Start, System.IO.Path.GetDirectoryName(localPath));
+            using(var logFile = System.IO.File.OpenWrite(filename))
+            {
+                await result.ToLogFile(logFile);
+            }
+        }
         
     }
 

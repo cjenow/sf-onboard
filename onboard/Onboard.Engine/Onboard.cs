@@ -31,11 +31,13 @@ namespace ShareFile.Onboard.Engine
 
         public async Task<OnboardResult> BeginUpload(Uri sfRoot)
         {
-            return new OnboardResult(await UploadFolder(fileSystem.Root, sfRoot));
+            var start = DateTimeOffset.Now;
+            return new OnboardResult(await UploadFolder(fileSystem.Root, sfRoot)) { Start = start };
         }
 
         private async Task<FolderResult> UploadFolder(RemoteFolder folder, Uri parent)
         {
+            var createdAt = DateTimeOffset.Now;
             var fileTasks = parent.AbsoluteUri.Contains("allshared")
                 ? new Task<FileResult>[] { }
                 : (await folder.GetChildFiles()).Select(file => UploadFile(file, parent)).ToArray();
@@ -49,6 +51,7 @@ namespace ShareFile.Onboard.Engine
                 Uri = parent,
                 ChildFileTasks = fileTasks,
                 ChildFolders = folderTasks.Select(t => t.Result).ToArray(),
+                ProcessedAt = createdAt,
             };
             // result = fileTasks.Select(task => task.Result).Aggregate(result, (folderResult, fileResult) => folderResult.AddChild(fileResult));
             // result = folderTasks.Select(task => task.Result).Aggregate(result, (folderResult, childFolderResult) => folderResult.AddChild(childFolderResult));
